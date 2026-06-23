@@ -15,8 +15,8 @@ def construir_texto_embedding(fila: pd.Series) -> str:
     return (
         f"Nombre del trámite: {fila['Nombre del tramite']}\n"
         f"Dependencia: {fila['Dependencia']}\n"
-        f"Descripción: {fila['Descripcion']}"
-        f"Requisitos: {fila['Requisitos']}"
+        f"Descripción: {fila['Descripcion']}\n"
+        f"Requisitos: {fila['Requisitos']}\n"
         f"Cómo realizarlo: {fila['Como realizar el tramite']}"
     )
 

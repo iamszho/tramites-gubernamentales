@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+
+# Vector store (se regenera con el indexador)
+chroma_db/
+
+# Base de datos SQLite del PoC (se regenera al arrancar el backend)
+*.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.env.local
+
+# OS / editor
+.DS_Store
