@@ -1,0 +1,11 @@
+# Backend TramiteFácil (PoC). No usa RAG (ADR-001): persistencia con SQLite (stdlib)
+# y auth con hashlib/secrets (stdlib), así que las dependencias son mínimas.
+
+fastapi==0.115.14
+uvicorn[standard]==0.34.3
+pydantic[email]==2.*
+python-dotenv==1.2.2
+
+# Generación del chatbot. Gemini por defecto; OpenRouter opcional (ADR-002).
+google-genai==2.9.0
+openai==1.109.1
