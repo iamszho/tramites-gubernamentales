@@ -14,10 +14,7 @@ class RegistroIndexable:
 def construir_texto_embedding(fila: pd.Series) -> str:
     return (
         f"Nombre del trámite: {fila['Nombre del tramite']}\n"
-        f"Dependencia: {fila['Dependencia']}\n"
         f"Descripción: {fila['Descripcion']}"
-        f"Requisitos: {fila['Requisitos']}"
-        f"Cómo realizarlo: {fila['Como realizar el tramite']}"
     )
 
 
@@ -42,7 +39,7 @@ def construir_metadata(fila: pd.Series) -> dict:
         "dependencia": fila["Dependencia"],
         "tipo": fila["Tipo"],
         "homoclave": fila["Homoclave"],
-        "link": fila["Link"],
+        "tipo": fila["Tipo"],
         "costo": fila["Costo del tramite"],
         "vigencia": fila["Vigencia"],
     }

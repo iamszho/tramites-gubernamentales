@@ -20,7 +20,7 @@ Chatbot RAG para consultar trámites administrativos del gobierno mexicano. Tres
 ## El dataset
 
 - **Fuente:** CSV/Excel con datos de trámites gubernamentales mexicanos
-- **Dimensiones:** 6,376 filas × 15 columnas
+- **Dimensiones:** 4,507 filas × 14 columnas (13 columnas de datos + `id_unico` como identificador generado, usado como ID del documento en Chroma; verificado 2026-07-03)
 - **Columnas:**
 
 | Columna                  | Promedio palabras | Notas                                          |
@@ -62,11 +62,13 @@ Un sistema solo semántico no puede garantizar filtros exactos (ej. `costo == "G
 
 ---
 
-### Modelo de embeddings: `paraphrase-multilingual-MiniLM-L12-v2`
+### Modelo de embeddings: `paraphrase-multilingual-mpnet-base-v2`
 
 - Corre en local (Sentence Transformers), sin costo de API
 - Soporte multilingüe, adecuado para español
-- **Límite arquitectónico: 128 tokens (~98 palabras en español)**
+- Actualizado desde `paraphrase-multilingual-MiniLM-L12-v2` (384 dim) — mpnet-base-v2 usa 768 dim, generalmente mejor calidad de recuperación
+- Similitud nativa del modelo: **coseno** (`model.similarity_fn_name == "cosine"`, verificado 2026-07-03)
+- **Límite arquitectónico: 128 tokens (`model.max_seq_length`, verificado 2026-07-03; ~98 palabras en español)**
 - Este límite es del modelo, no de la API — no cambia si se corre local o en nube
 - El `page_content` promedio del dataset es ~202 palabras → supera el límite más del doble
 - Por esto se adoptó la **Opción B: separar string de embedding del page_content**
@@ -140,13 +142,19 @@ Tiempo de respuesta: {Tiempo de respuesta}
 - Esta carpeta **no se sube al repositorio** → agregar `chroma_db/` al `.gitignore`
 - Quien clone el repo regenera la base corriendo el script de indexación
 
+**Métrica de distancia: coseno (`hnsw:space: cosine`)**
+
+- Corregido 2026-07-03: la colección se creaba sin especificar `hnsw:space`, por lo que Chroma usaba L2 por defecto — un desajuste con un modelo entrenado para similitud coseno, que degradaba el ranking de resultados sin dar error.
+- La métrica de una colección Chroma queda fija al crearse: no se puede cambiar en una colección existente, hay que borrar `chroma_db/` y reindexar.
+- `build_index.py` ahora crea la colección con `get_or_create_collection(NOMBRE_COLECCION, metadata={"hnsw:space": "cosine"})`.
+
 ---
 
 ## Stack tecnológico
 
 | Capa                | Tecnología                                                      |
 | ------------------- | --------------------------------------------------------------- |
-| Embeddings          | `paraphrase-multilingual-MiniLM-L12-v2` (Sentence Transformers) |
+| Embeddings          | `paraphrase-multilingual-mpnet-base-v2` (Sentence Transformers) |
 | Vector store (dev)  | Chroma                                                          |
 | Vector store (prod) | Pinecone                                                        |
 | Framework RAG       | LangChain                                                       |
@@ -164,7 +172,7 @@ Tiempo de respuesta: {Tiempo de respuesta}
 1. Exploración (shape, columnas, nulos)
 2. Limpieza (strip, normalización de costos, `limpiar_simple` vs `limpiar_lista`)
 3. Diseño del documento (plantilla `page_content` + string de embedding + metadata)
-4. Generación de 6,376 `Document` objects de LangChain
+4. Generación de 4,507 `Document` objects de LangChain
 5. Validación manual de muestra
 
 ### Fase 2 — Vector store (en curso)
@@ -211,6 +219,8 @@ La indexación usa el cliente `chromadb` directo (no el wrapper `Chroma` de Lang
 - **Self-querying retriever vs filtros manuales** en Fase 3: el self-querying retriever usa el LLM para traducir lenguaje natural a filtros de metadata automáticamente; los filtros manuales son más predecibles pero menos flexibles
 - **Ajuste del string de embedding**: se puede agregar una porción (primeras ~30 palabras) de Requisitos si se detecta que la recuperación semántica es insuficiente para preguntas del tipo "¿qué necesito para...?". Confirmado con datos reales: algunos trámites (ej. nombres largos de COFEPRIS) superan ~150 palabras solo en Nombre + Descripción, por encima del límite de 128 tokens — falta decidir si se truncan estos campos en el string de embedding o se acepta la pérdida de cobertura semántica en esos casos
 - **Redacción de placeholders en respuestas del LLM**: el LLM va a leer literalmente "Vigencia: Sin vigencia" — decidir si se traduce a lenguaje más natural en el prompt de Fase 3
+- **Truncamiento silencioso del texto de embedding**: cuantificado 2026-07-03 sobre el CSV actual — 451 filas (10%) superan las 90 palabras de margen, 115 filas (2.5%) superan las 128 palabras y ya se truncan hoy en la práctica (el peor caso pierde toda la Descripción porque el Nombre solo mide 113 palabras). Falta decidir una estrategia de truncamiento explícita en vez de dejarlo en manos del tokenizer.
+- **`document_builder.py` no implementa la Opción B tal como está documentada**: `construir_texto_embedding` solo usa Nombre + Descripción (falta Dependencia); `construir_metadata` no incluye `nombre`, `homoclave` ni `link` (este último bloquea la cita de fuente oficial planeada para Fase 3). No se sabe si fue una decisión intencional o una regresión — pendiente de confirmar y, si aplica, corregir.
 
 ---
 

@@ -27,7 +27,10 @@ def indexar(limite: int | None = None, solo_validar: bool = False, tamano_muestr
     embeddings = generador.generar([registro.texto_embedding for registro in registros])
 
     cliente = chromadb.PersistentClient(path=str(DIRECTORIO_CHROMA))
-    coleccion = cliente.get_or_create_collection(NOMBRE_COLECCION)
+    coleccion = cliente.get_or_create_collection(
+        NOMBRE_COLECCION,
+        metadata={"hnsw:space": "cosine"},
+    )
     coleccion.upsert(
         ids=[registro.id for registro in registros],
         embeddings=embeddings,

@@ -11,10 +11,8 @@ modelo = SentenceTransformer("paraphrase-multilingual-mpnet-base-v2")
 def conteo_regitros (): 
     print(f"Registros en Chroma: {coleccion.count()}")
 
-def analisis_contenido (): 
-
-    vector_pregunta = modelo.encode("kiero saber como le ago para sacar mi ife").tolist()
-    
+def analisis_contenido (texto: str): 
+    vector_pregunta = modelo.encode(texto).tolist ()
     resultados = coleccion.query(
         query_embeddings=[vector_pregunta]
         #n_results=3
@@ -29,9 +27,12 @@ def busqueda_con_filtro ():
     vector_pregunta = modelo.encode("Quiero sacar mi licencia de mi carro").tolist()
     
     resultados = coleccion.query(
-        query_embeddings=[vector_pregunta],
+        # query_embeddings=[vector_pregunta],
         n_results=3,
-        where={"tipo": "En línea"}   # <-- AQUÍ PONES TU FILTRO
+        where={
+            "tipo": "En línea",
+            "dependencia": "Secretaría de Movilidad y Transporte",
+        }   # <-- AQUÍ PONES TU FILTRO
     )
 
     for i, doc in enumerate(resultados["documents"][0]):
@@ -40,4 +41,5 @@ def busqueda_con_filtro ():
         print("Metadata:", resultados["metadatas"][0][i])
 
 # busqueda_con_filtro ()
-analisis_contenido ()
+texto = "Ya pasó un año desde que inauguramos la estación de carga de combustible, ¿cómo se reporta la revisión anual obligatoria de mantenimiento ante la ASEA?" 
+analisis_contenido (texto)
