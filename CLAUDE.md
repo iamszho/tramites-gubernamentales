@@ -62,3 +62,11 @@ Instrucciones:
 ### API de Verificación de Documentos
 - Endpoint: `https://api.verificacion.gob.mx/v1`
 - Documentación: `https://developer.verificacion.gob.mx`
+
+## Comandos de Desarrollo y Pruebas
+
+### Bot (Directorio `bot/`)
+Para realizar tareas y pruebas en el módulo del bot, ingresa al directorio `bot/` o ejecuta a través de su entorno virtual:
+- **Ejecutar Clasificación de Intenciones y NLU:** `python app/nlu/intentions.py` (o desde la raíz: `bot/venv/bin/python bot/app/nlu/intentions.py`)
+- **Indexar Base de Datos (Chroma):** `python -m indexer.build_index`
+- **Probar Base de Datos de Vectores (Chroma):** `python indexer/test/test_coleccion.py`

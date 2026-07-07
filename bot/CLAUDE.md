@@ -196,11 +196,18 @@ Tiempo de respuesta: {Tiempo de respuesta}
 
 La indexación usa el cliente `chromadb` directo (no el wrapper `Chroma` de LangChain), porque ese wrapper siempre embebe el mismo texto que almacena — no permite separar el string de embedding del `page_content`. Se generan los vectores con `sentence-transformers` a partir del string corto y se insertan con `collection.upsert(ids, embeddings, documents, metadatas)`, donde `documents` es el `page_content` completo. `id_unico` (columna del CSV, sin duplicados) se usa como `id` del documento en Chroma.
 
-### Fase 3 — Construcción del bot con LangChain
+### Fase 3 — Construcción del bot con LangChain (En curso)
 
-- Retriever híbrido: similitud vectorial + filtrado por metadata
-- Self-querying retriever (LangChain traduce lenguaje natural a filtros de metadata automáticamente) vs filtros manuales — decisión pendiente
-- El campo `Link` de metadata se usa para citar la fuente oficial en cada respuesta
+- **Retriever híbrido:** similitud vectorial + filtrado por metadata (en progreso).
+- **Procesamiento de Lenguaje Natural (NLU):**
+  - Módulo [intentions.py](file:///home/angelmanuelsanchezhipolito/Projects/IA-Tr%C3%A1mites-Gubernamentales/tramites-gubernamentales/bot/app/nlu/intentions.py) implementado para análisis y clasificación de intenciones en paralelo.
+  - Esquema [UserIntention](file:///home/angelmanuelsanchezhipolito/Projects/IA-Tr%C3%A1mites-Gubernamentales/tramites-gubernamentales/bot/app/nlu/schema.py#L5) para clasificar intenciones múltiples y generar el `answer_prompt`.
+  - Esquema [TramiteInformation](file:///home/angelmanuelsanchezhipolito/Projects/IA-Tr%C3%A1mites-Gubernamentales/tramites-gubernamentales/bot/app/nlu/schema.py#L26) para la extracción estructurada de modalidades (`tipo`: `En línea`, `Presencial`, `Medios Alternativos`, `NULL`).
+  - Prompts estructurados en [system_prompt.py](file:///home/angelmanuelsanchezhipolito/Projects/IA-Tr%C3%A1mites-Gubernamentales/tramites-gubernamentales/bot/app/nlu/prompts/system_prompt.py) para clasificación (`SYSTEM_PROMPT_CLASSIFIER`) y extracción sin falsos inferidos de modalidad (`SYSTEM_PROMPT_EXTRACTOR`).
+  - Centralización del LLM con OpenRouter en [config.py](file:///home/angelmanuelsanchezhipolito/Projects/IA-Tr%C3%A1mites-Gubernamentales/tramites-gubernamentales/bot/app/core/config.py).
+- **Pendiente:** Integrar retriever híbrido (similitud vectorial + filtros de metadata exactos) y coordinar el flujo NLU completo.
+- El campo `Link` de metadata se usa para citar la fuente oficial en cada respuesta.
+
 
 ### Fase 4 — Backend y frontend
 
@@ -218,7 +225,7 @@ La indexación usa el cliente `chromadb` directo (no el wrapper `Chroma` de Lang
 
 - **Self-querying retriever vs filtros manuales** en Fase 3: el self-querying retriever usa el LLM para traducir lenguaje natural a filtros de metadata automáticamente; los filtros manuales son más predecibles pero menos flexibles
 - **Ajuste del string de embedding**: se puede agregar una porción (primeras ~30 palabras) de Requisitos si se detecta que la recuperación semántica es insuficiente para preguntas del tipo "¿qué necesito para...?". Confirmado con datos reales: algunos trámites (ej. nombres largos de COFEPRIS) superan ~150 palabras solo en Nombre + Descripción, por encima del límite de 128 tokens — falta decidir si se truncan estos campos en el string de embedding o se acepta la pérdida de cobertura semántica en esos casos
-- **Redacción de placeholders en respuestas del LLM**: el LLM va a leer literalmente "Vigencia: Sin vigencia" — decidir si se traduce a lenguaje más natural en el prompt de Fase 3
+- **Redacción de placeholders en respuestas del LLM**: el LLM va a leer literalmente "Vigencia: Sin vigencia" — decidir si se traduce a lenguaje más natural en el prompt de Fase 3. *(Parcialmente resuelto: Se implementaron reglas de normalización para traducir placeholders a lenguaje natural dentro del borrador de `SYSTEM_PROMPT` en `system_prompt.py`)*
 - **Truncamiento silencioso del texto de embedding**: cuantificado 2026-07-03 sobre el CSV actual — 451 filas (10%) superan las 90 palabras de margen, 115 filas (2.5%) superan las 128 palabras y ya se truncan hoy en la práctica (el peor caso pierde toda la Descripción porque el Nombre solo mide 113 palabras). Falta decidir una estrategia de truncamiento explícita en vez de dejarlo en manos del tokenizer.
 - **`document_builder.py` no implementa la Opción B tal como está documentada**: `construir_texto_embedding` solo usa Nombre + Descripción (falta Dependencia); `construir_metadata` no incluye `nombre`, `homoclave` ni `link` (este último bloquea la cita de fuente oficial planeada para Fase 3). No se sabe si fue una decisión intencional o una regresión — pendiente de confirmar y, si aplica, corregir.
 
