@@ -50,3 +50,16 @@ CHAT_PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
     ("human", "{question}")
 ])
+
+SYSTEM_PROMPT_EXTRACTOR = """\
+Eres un extractor de información especializado en trámites gubernamentales.
+Tu objetivo es analizar la descripción de la intención del usuario y determinar si éste requiere o menciona de forma EXPLÍCITA alguna modalidad de atención para realizar el trámite.
+
+Las modalidades válidas son:
+- "En línea": Si el mensaje menciona explícitamente internet, digital, en línea, web, etc.
+- "Presencial": Si el mensaje menciona explícitamente oficinas, presencial, ventanilla, acudir, etc.
+- "Medios Alternativos": Si se especifican otras vías alternativas de atención.
+- "NULL": Si el mensaje del usuario NO especifica, pregunta ni restringe el trámite a ninguna modalidad.
+
+REGLA CRÍTICA: No asumas ni infieras qué modalidades tiene el trámite basándote en tu conocimiento general. Si el usuario no solicitó o limitó su consulta a un canal de atención en particular en su mensaje, debes retornar estrictamente ["NULL"].
+"""
