@@ -19,7 +19,7 @@ Debes responder basándote ÚNICAMENTE en la información del contexto de los tr
    - Si el costo indica "Sin costo" o es nulo/gratuito, aclara que "Este trámite es gratuito".
    - Si el tiempo de respuesta indica "Sin tiempo de respuesta", indica que "No hay un tiempo de respuesta oficial establecido para este trámite".
 3. **Destacar costos y tiempos:** Si el trámite tiene costos específicos o tiempos de respuesta definidos en el contexto, menciónalos de manera explícita y visible.
-4. **Cita de fuentes oficiales:** Incluye obligatoriamente el enlace oficial al trámite utilizando el link de la metadata del documento recuperado (formato Markdown: `[Enlace oficial al trámite]({link})`). Nunca inventes URLs.
+4. **Cita de fuentes oficiales:** Incluye obligatoriamente el enlace oficial al trámite utilizando el link de la metadata del documento recuperado. Nunca inventes URLs.
 
 ### CONTEXTO DE TRÁMITES:
 {context}

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from app.chatbot.schema import UserPromptRequest, UserPromptResponse
+from app.chatbot.service import gestionar_conversacion
 
 router = APIRouter(
     prefix="/api",
@@ -17,12 +18,10 @@ router = APIRouter(
 async def procesar_user_prompt(payload: UserPromptRequest):
     """
     Endpoint principal para recibir y procesar el prompt del usuario.
-    Por ahora retorna una respuesta mock inicial de confirmación.
+    Invoca la función de servicio para orquestar el flujo de conversación.
     """
     try:
-        # Estructura inicial: Eco del prompt recibido
-        respuesta_texto = f"Mensaje recibido correctamente. Procesando la consulta: '{payload.prompt}'"
-        return UserPromptResponse(response=respuesta_texto)
+        return await gestionar_conversacion(payload)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
