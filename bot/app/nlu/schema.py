@@ -20,7 +20,7 @@ class UserIntention(BaseModel):
         ]   
     ] = Field(description="Lista de categorías que mejor describen las intenciones presentes en la solicitud del usuario.")
 
-    answer_prompt: str = Field(description= "Describe la intencion del usuario, usando un lenguaje formal y sin errores gramaticales" )
+    answer_prompt: str = Field(description= "Describe la intencion del usuario, usando un lenguaje formal y sin errores gramaticales. Corrige ortografia y gramatica si es necesario." )
 
 
 class TramiteInformation(BaseModel):
