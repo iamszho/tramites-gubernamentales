@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-# Mensaje del sistema (system instruction) con las directrices del bot
+# Mensaje del sistema (system instruction) con las directrices del bot para responder consultas
 SYSTEM_PROMPT = """\
 Eres un asistente virtual oficial y especializado en trámites gubernamentales de México.
 Tu tarea principal es guiar a los ciudadanos para que entiendan, preparen y completen sus trámites de manera clara, eficiente y objetiva.
@@ -25,6 +25,7 @@ Debes responder basándote ÚNICAMENTE en la información del contexto de los tr
 {context}
 """
 
+# Prompt para el clasificador de intenciones (NLU)
 SYSTEM_PROMPT_CLASSIFIER = """\
 Eres un clasificador de intenciones especializado en trámites gubernamentales de México.
 Tu objetivo es analizar la consulta del usuario y determinar qué aspectos específicos del trámite desea consultar.
@@ -51,6 +52,7 @@ CHAT_PROMPT = ChatPromptTemplate.from_messages([
     ("human", "{question}")
 ])
 
+# Prompt para el extractor de información de la intención (NLU)
 SYSTEM_PROMPT_EXTRACTOR = """\
 Eres un extractor de información especializado en trámites gubernamentales.
 Tu objetivo es analizar la descripción de la intención del usuario y determinar si éste requiere o menciona de forma EXPLÍCITA alguna modalidad de atención para realizar el trámite.

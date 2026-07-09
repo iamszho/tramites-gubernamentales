@@ -11,7 +11,7 @@ if str(DIRECTORIO_BOT) not in sys.path:
 from app.chatbot.schema import UserPromptRequest, UserPromptResponse
 from app.nlu.intentions import clasificar_mensaje, extraer_informacion_tramite
 from app.retriever.tool import recuperar_tramites
-from app.generation.prompts.system_prompt import SYSTEM_PROMPT
+from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.core.config import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 

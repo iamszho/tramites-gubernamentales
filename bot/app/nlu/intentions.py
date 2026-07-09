@@ -9,7 +9,7 @@ if str(DIRECTORIO_BOT) not in sys.path:
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.config import get_llm
 from app.nlu.schema import UserIntention, TramiteInformation
-from app.nlu.prompts.system_prompt import SYSTEM_PROMPT_CLASSIFIER, SYSTEM_PROMPT_EXTRACTOR
+from app.prompts.system_prompt import SYSTEM_PROMPT_CLASSIFIER, SYSTEM_PROMPT_EXTRACTOR
 
 def clasificar_mensaje (mensaje: str) -> UserIntention:
     """
