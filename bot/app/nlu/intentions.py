@@ -7,6 +7,7 @@ if str(DIRECTORIO_BOT) not in sys.path:
     sys.path.append(str(DIRECTORIO_BOT))
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain.tools import tool
 from app.core.config import get_llm
 from app.nlu.schema import UserIntention, TramiteInformation
 from app.prompts.system_prompt import SYSTEM_PROMPT_CLASSIFIER, SYSTEM_PROMPT_EXTRACTOR
@@ -52,6 +53,33 @@ def extraer_informacion_tramite(answer_prompt: str) -> TramiteInformation:
     chain = prompt | llm_estructurado
     return chain.invoke({"answer_prompt": answer_prompt})
 
+@tool
+def analizar_consulta_ciudadana(mensaje: str) -> dict:
+    """
+    Analiza y clasifica la consulta de un ciudadano sobre trámites gubernamentales en México.
+    
+    Identifica las intenciones del usuario (como requisitos, costo, descripción, etc.),
+    obtiene una versión del prompt normalizada (sin errores de ortografía o redacción),
+    y extrae la modalidad o canal de atención deseado (En línea, Presencial, Medios Alternativos, o NULL).
+    
+    Args:
+        mensaje: La consulta o mensaje original enviado por el ciudadano.
+        
+    Returns:
+        Un diccionario que contiene:
+        - intenciones: Lista de aspectos del trámite detectados.
+        - prompt_normalizado: El mensaje limpio y corregido para búsqueda semántica.
+        - tipo_modalidad: Modalidad o canal de atención solicitado explícitamente (si existe).
+    """
+    clasificacion = clasificar_mensaje(mensaje)
+    info_tramite = extraer_informacion_tramite(clasificacion.answer_prompt)
+    
+    return {
+        "intenciones": clasificacion.user_intention,
+        "prompt_normalizado": clasificacion.answer_prompt,
+        "tipo_modalidad": info_tramite.tipo
+    }
+
 
 if __name__ == "__main__":
     # Prueba 1: Con modalidad explícita (Presencial)
@@ -81,4 +109,14 @@ if __name__ == "__main__":
     res_info_2 = extraer_informacion_tramite(res_clasificacion_2.answer_prompt)
     print(f"Información extraída (tipo): {res_info_2.tipo}")
     print(f"Diccionario filtrado: {res_info_2.model_dump(exclude_none=True)}\n")
+    
+    print("=" * 60)
+    # Prueba 3: Probando la Herramienta Unificada (Tool)
+    print("\n--- PRUEBA 3 (HERRAMIENTA UNIFICADA) ---")
+    mensaje_prueba_3 = "Costo del pasaporte para realizarlo presencial"
+    print(f"Mensaje original: '{mensaje_prueba_3}'\n")
+    
+    # Invocar como herramienta de LangChain (.invoke)
+    res_tool = analizar_consulta_ciudadana.invoke({"mensaje": mensaje_prueba_3})
+    print(f"Resultado de la herramienta: {res_tool}\n")
 

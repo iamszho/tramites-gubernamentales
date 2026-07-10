@@ -9,11 +9,12 @@ if str(DIRECTORIO_BOT) not in sys.path:
     sys.path.append(str(DIRECTORIO_BOT))
 
 from app.chatbot.schema import UserPromptRequest, UserPromptResponse
-from app.nlu.intentions import clasificar_mensaje, extraer_informacion_tramite
-from app.retriever.tool import recuperar_tramites
+from app.nlu.intentions import analizar_consulta_ciudadana
+from app.retriever.retriever import recuperar_tramites
 from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.core.config import get_llm
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents import create_agent
+from langchain_core.messages import ToolMessage
 
 # Configurar Logger para el servicio
 logger = logging.getLogger("app.chatbot.service")
@@ -80,6 +81,59 @@ def loggear_tabla_tramites(resultados: Dict[str, Any]):
     logger.info("\n".join(table_lines))
 
 
+async def _rag_tramites(payload: UserPromptRequest) -> UserPromptResponse:
+    """
+    Realiza el flujo RAG de forma agéntica (dinámica) para la consulta de trámites.
+    Crea un agente de LangChain con acceso a herramientas de NLU y recuperación de Chroma.
+    """
+    # 1. Inicializar el LLM
+    llm = get_llm(temperature=0.1)
+    
+    # 2. Configurar el agente con las herramientas requeridas y el prompt del sistema
+    agent = create_agent(
+        model=llm,
+        tools=[analizar_consulta_ciudadana, recuperar_tramites],
+        system_prompt=SYSTEM_PROMPT,
+        debug=False
+    )
+    
+    logger.info("\n" + "="*80)
+    logger.info("INICIO DE EJECUCIÓN AGÉNTICA (RAG)")
+    logger.info(f"-> Prompt original del usuario: '{payload.prompt}'")
+    logger.info("="*80)
+    
+    # 3. Invocar al agente de forma asíncrona
+    resultado = await agent.ainvoke({
+        "messages": [("user", payload.prompt)]
+    })
+    
+    # 4. Procesar y loggear ejecuciones de herramientas durante la conversación
+    messages = resultado.get("messages", [])
+    for message in messages:
+        if isinstance(message, ToolMessage):
+            logger.info(f"\n[HERRAMIENTA - '{message.name}'] Ejecutada.")
+            if message.name == "recuperar_tramites" and hasattr(message, "artifact") and message.artifact:
+                # Loggear los resultados recuperados en formato de tabla
+                loggear_tabla_tramites(message.artifact)
+            else:
+                logger.info(f"-> Argumentos/Resultados: {message.content[:250]}...")
+    
+    # 5. Obtener respuesta final del asistente
+    respuesta_final = ""
+    if messages:
+        ultimo_mensaje = messages[-1]
+        respuesta_final = ultimo_mensaje.content
+        
+    logger.info("\n" + "="*80)
+    logger.info("-> Respuesta generada por el agente:")
+    logger.info("-" * 80)
+    logger.info(respuesta_final)
+    logger.info("-" * 80)
+    logger.info("="*80 + "\n")
+
+    return UserPromptResponse(response=respuesta_final)
+
+
 async def gestionar_conversacion(payload: UserPromptRequest) -> UserPromptResponse:
     """
     Coordina el flujo de conversación RAG:
@@ -88,78 +142,4 @@ async def gestionar_conversacion(payload: UserPromptRequest) -> UserPromptRespon
     3. Recuperación de los trámites más relevantes desde Chroma.
     4. Generación de respuesta estructurada usando el LLM y el contexto recuperado.
     """
-    
-    # =========================================================================
-    # ETAPA 1: CLASIFICACIÓN Y EXTRACCIÓN
-    # =========================================================================
-    logger.info("\n" + "="*80)
-    logger.info("ETAPA 1: CLASIFICACIÓN Y EXTRACCIÓN (NLU)")
-    logger.info(f"-> Prompt original del usuario: '{payload.prompt}'")
-    
-    # Clasificar mensaje del usuario
-    clasificacion = clasificar_mensaje(payload.prompt)
-    answer_prompt = clasificacion.answer_prompt
-    logger.info(f"-> Categorías de intención detectadas: {clasificacion.user_intention}")
-    logger.info(f"-> Prompt normalizado (para búsqueda semántica): '{answer_prompt}'")
-
-    # Extraer información estructurada (filtros de modalidad)
-    info_tramite = extraer_informacion_tramite(answer_prompt)
-
-    # Determinar filtro de tipo (modalidad) para la base vectorial
-    tipo_filtro = None
-    if info_tramite and info_tramite.tipo:
-        # Filtrar valores válidos descartando marcadores "NULL"
-        tipos_validos = [t for t in info_tramite.tipo if t and str(t).strip().upper() != "NULL"]
-        if tipos_validos:
-            tipo_filtro = tipos_validos
-    logger.info(f"-> Filtro por Modalidad (Tipo): {tipo_filtro}")
-    logger.info("="*80)
-
-    # =========================================================================
-    # ETAPA 2: RECUPERACIÓN (Vector DB)
-    # =========================================================================
-    logger.info("\n" + "="*80)
-    logger.info("ETAPA 2: RECUPERACIÓN (Búsqueda Vectorial)")
-    logger.info(f"-> Consultando Chroma con límite de 5 trámites...")
-    
-    # Recuperar trámites usando búsqueda semántica y filtros
-    contexto, resultados = recuperar_tramites.func(
-        query=answer_prompt,
-        limit=5,  # Límite de 5 documentos
-        tipo=tipo_filtro
-    )
-    
-    # Imprimir logs de los resultados recuperados en formato de tabla
-    loggear_tabla_tramites(resultados)
-    logger.info("="*80)
-
-    # =========================================================================
-    # ETAPA 3: GENERACIÓN
-    # =========================================================================
-    logger.info("\n" + "="*80)
-    logger.info("ETAPA 3: GENERACIÓN (LLM)")
-    logger.info("-> Generando respuesta contextual estructurada...")
-    
-    # Inicializar el LLM para la generación final
-    llm = get_llm(temperature=0.1)
-
-    # Configurar la plantilla del prompt del sistema
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{pregunta}")
-    ])
-
-    # Ejecutar cadena de generación
-    chain = prompt_template | llm
-    respuesta = await chain.ainvoke({
-        "context": contexto,
-        "pregunta": payload.prompt
-    })
-    
-    logger.info("-> Respuesta generada por el modelo:")
-    logger.info("-" * 80)
-    logger.info(respuesta.content)
-    logger.info("-" * 80)
-    logger.info("="*80 + "\n")
-
-    return UserPromptResponse(response=respuesta.content)
+    return await _rag_tramites(payload)
