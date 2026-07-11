@@ -13,6 +13,7 @@ from app.nlu.intentions import analizar_consulta_ciudadana
 from app.retriever.retriever import recuperar_tramites
 from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.core.config import get_llm
+from app.guardrails.before_agents import content_limit
 from langchain.agents import create_agent
 from langchain_core.messages import ToolMessage
 
@@ -94,7 +95,8 @@ async def _rag_tramites(payload: UserPromptRequest) -> UserPromptResponse:
         model=llm,
         tools=[analizar_consulta_ciudadana, recuperar_tramites],
         system_prompt=SYSTEM_PROMPT,
-        debug=False
+        middleware=[content_limit],
+        debug=False, 
     )
     
     logger.info("\n" + "="*80)
